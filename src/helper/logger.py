@@ -1,4 +1,4 @@
-from logging import ( 
+from logging import (
     Logger,
     basicConfig,
     Formatter,
@@ -17,15 +17,14 @@ level = "INFO"
 class CustomLogger(Logger):
     def __init__(self, name: str, level: Any = NOTSET):
         super().__init__(name, level)
-        
+
         basicConfig(level=NOTSET)
-        
+
         log_format = "%(asctime)s [%(levelname)s] %(message)s"
         formatter = Formatter(log_format)
-    
+
         self.stream_handler = StreamHandler()
         self.stream_handler.setFormatter(formatter)
-
 
         self.stream_handler.setLevel(level)
 

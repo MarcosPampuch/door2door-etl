@@ -8,7 +8,9 @@ class PostgresSQL:
     PostgreSQL client wrapper for connecting, querying, and upserting transactions.
     """
 
-    def __init__(self, dbname: str, user: str, password: str, host: str, port: str) -> None:
+    def __init__(
+        self, dbname: str, user: str, password: str, host: str, port: str
+    ) -> None:
         """
         Initialize the PostgresSQL client and connect to the database.
 
@@ -39,39 +41,49 @@ class PostgresSQL:
             metadata (dict): Metadata dictionary to insert.
             entity (str, optional): Entity name for handler step.
         """
-        
-        if code_step == 'ingestor':
+
+        if code_step == "ingestor":
 
             upsert_query = f"""
             INSERT INTO {code_step}_executions (workflow_id, code_execution_id, code_execution_date, fetched_hour, number_of_files_fetched, file_destination_path, traceback)
             VALUES (%s, %s, %s, %s, %s, %s, %s);
             """
 
-            self.cursor.execute(upsert_query, (
-                metadata["workflow_id"],
-                metadata["code_execution_id"],
-                metadata["code_execution_date"],
-                metadata.get("fetched_hour"),
-                metadata.get("number_of_files_fetched"),
-                metadata.get("file_destination_path"),
-                metadata.get("traceback")
-            ))
+            self.cursor.execute(
+                upsert_query,
+                (
+                    metadata["workflow_id"],
+                    metadata["code_execution_id"],
+                    metadata["code_execution_date"],
+                    metadata.get("fetched_hour"),
+                    metadata.get("number_of_files_fetched"),
+                    metadata.get("file_destination_path"),
+                    metadata.get("traceback"),
+                ),
+            )
 
-        elif code_step == 'handler':
+        elif code_step == "handler":
             upsert_query = f"""
             INSERT INTO {code_step}_executions (workflow_id, code_execution_id, code_execution_date, file_fetch_path, destination_table, records_inserted, traceback)
             VALUES (%s, %s, %s, %s, %s, %s, %s);
             """
 
-            self.cursor.execute(upsert_query, (
-                metadata["workflow_id"],
-                metadata["code_execution_id"],
-                metadata["code_execution_date"],
-                metadata.get("file_fetch_path"),
-                metadata.get(entity).get("destination_table") if entity else None,
-                metadata.get(entity).get("records_inserted") if entity else None,
-                metadata.get(entity).get("traceback") if entity else metadata.get("traceback")
-            ))
+            self.cursor.execute(
+                upsert_query,
+                (
+                    metadata["workflow_id"],
+                    metadata["code_execution_id"],
+                    metadata["code_execution_date"],
+                    metadata.get("file_fetch_path"),
+                    metadata.get(entity).get("destination_table") if entity else None,
+                    metadata.get(entity).get("records_inserted") if entity else None,
+                    (
+                        metadata.get(entity).get("traceback")
+                        if entity
+                        else metadata.get("traceback")
+                    ),
+                ),
+            )
 
     def get_last_successfull_fetch_date(self, code_step: str):
         """
@@ -79,11 +91,10 @@ class PostgresSQL:
 
         Args:
             code_step (str): The code step ('ingestor' or 'handler').
-        
+
         Returns:
             datetime or None: The maximum fetched_hour value or None if no rows match.
         """
-
 
         query = f"""
                     SELECT MAX(fetched_hour) 
@@ -100,7 +111,7 @@ class PostgresSQL:
 
         Args:
             workflow_id (str): Workflow ID to look up.
-        
+
         Returns:
             str or None: File path if found, else None.
         """
@@ -120,14 +131,14 @@ class PostgresSQL:
     def table_exists(self, table_name: str) -> bool:
         """
         Check if a table exists in the database.
-        
+
         Args:
             table_name (str): Name of the table to check.
-        
+
         Returns:
             bool: True if table exists, False otherwise.
         """
-       
+
         check_query = f"""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -137,42 +148,42 @@ class PostgresSQL:
         """
         self.cursor.execute(check_query)
         table_exists = self.cursor.fetchone()[0]
-        
+
         if not table_exists:
             return False
         else:
             return True
-        
 
     def insert_dataframe(self, dataframe: pd.DataFrame, table_name: str) -> None:
         """
         Insert a DataFrame into a PostgreSQL table, performing an upsert on event_generated_id.
-        
+
         Args:
             dataframe (pd.DataFrame): DataFrame to insert.
             table_name (str): Name of the table to insert data into.
         """
         try:
-            
-           
+
             columns = list(dataframe.columns)
-            
-            placeholders = ', '.join(['%s'] * len(columns))
-            update_set = ', '.join([f"{col} = EXCLUDED.{col}" for col in columns if col != 'id'])
+
+            placeholders = ", ".join(["%s"] * len(columns))
+            update_set = ", ".join(
+                [f"{col} = EXCLUDED.{col}" for col in columns if col != "id"]
+            )
             upsert_query = f"""
                 INSERT INTO {table_name} ({', '.join(columns)})
                 VALUES ({placeholders})
                 ON CONFLICT (event_generated_id) DO UPDATE SET {update_set}
             """
-            
-            
+
             data_to_insert = [tuple(row) for row in dataframe.values]
-            
-            
+
             self.cursor.executemany(upsert_query, data_to_insert)
-            
-            logger.info(f"Successfully inserted {len(dataframe)} rows into table {table_name}")
-            
+
+            logger.info(
+                f"Successfully inserted {len(dataframe)} rows into table {table_name}"
+            )
+
         except Exception as e:
             logger.error(f"Error inserting DataFrame into table {table_name}: {e}")
             raise

@@ -8,6 +8,7 @@ from ingestor import ingestor
 from handler import handler
 from helper.logger import logger
 
+
 @click.command()
 @click.option(
     "-s",
@@ -27,7 +28,6 @@ from helper.logger import logger
     default=None,
     help="the worflow_id to be executed. Should be used ONLY when variable 'step' is 'handler'.",
 )
-
 def executor(step, workflow) -> None:
 
     check_inputs_consistency(step, workflow)
@@ -36,17 +36,16 @@ def executor(step, workflow) -> None:
         workflow_id = str(uuid.uuid4())
     else:
         workflow_id = workflow
-    
-    logger.info(f"Starting workflow {workflow_id} -- step(s): {'ingestor and handler'if step == 'all' else step}")
 
+    logger.info(
+        f"Starting workflow {workflow_id} -- step(s): {'ingestor and handler'if step == 'all' else step}"
+    )
 
-    if step in ('ingestor', 'all'):
+    if step in ("ingestor", "all"):
         ingestor.main(workflow_id)
-    
-    
-    if step in ('handler', 'all'):
+
+    if step in ("handler", "all"):
         handler.main(workflow_id)
-    
 
 
 if __name__ == "__main__":
