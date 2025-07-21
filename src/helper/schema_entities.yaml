@@ -1,0 +1,56 @@
+vehicle:
+  table_name: vehicle_location
+  schema:
+    data.id:
+      type: uuid
+      column_name: vehicle_id
+      unique_identifier: True
+    at:
+      type: timestamp
+      column_name: event_timestamp
+      unique_identifier: True
+    event:
+      type: string
+      column_name: event_operation
+    organization_id:
+      type: string
+      column_name: organization_id
+    data.location.lat:
+      type: float
+      column_name: vehicle_latitude  
+    data.location.lng:
+      type: float
+      column_name: vehicle_longitude
+    data.location.at:
+        type: timestamp
+        column_name: vehicle_location_timestamp
+    original_s3_file_path:
+      type: string
+      column_name: original_s3_file_path
+
+operating_period:
+  table_name: operating_periods
+  schema:
+    data.id:
+      type: string
+      column_name: operating_period_id
+      unique_identifier: True
+    at:
+      type: timestamp
+      column_name: event_timestamp
+      unique_identifier: True
+    event:
+      type: string
+      column_name: event_operation
+    organization_id:
+      type: string
+      column_name: organization_id
+    data.start:
+      type: timestamp
+      column_name: operation_start  
+    data.finish:
+        type: timestamp
+        column_name: operation_finish
+    original_s3_file_path:
+      type: string
+      column_name: original_s3_file_path

@@ -1,0 +1,64 @@
+version: '3'
+services:
+
+  minio:
+    container_name: minio
+    image: minio/minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_BUCKET: door2door-files
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password1234
+      MINIO_HOST: 'minio:9000'
+    networks:
+      - net
+    # volumes:
+    #   - minio_data:/data
+    command: server /data --console-address ":9001"
+  
+  ## this container will just create the bucket files-imported if it does not exist.
+  minio_client:
+    image: minio/mc
+    container_name: mc
+    depends_on:
+      - minio
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password1234
+    networks:
+      - net
+    entrypoint: >
+      /bin/sh -c "
+        until (/usr/bin/mc alias set minio http://minio:9000 admin password1234) do echo '...waiting...' && sleep 1; done;
+        if ! /usr/bin/mc ls minio/door2door-files; then
+          /usr/bin/mc mb minio/door2door-files;
+          /usr/bin/mc policy set public minio/door2door-files;
+        fi;
+        "
+
+  postgres:
+    image: postgres:13.3-alpine
+    hostname: data_warehouse
+    container_name: data_warehouse
+    environment:
+      POSTGRES_DB: data_warehouse_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password1234
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    networks:
+      - net
+    volumes:
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    #   - postgres_data:/var/lib/postgresql/data
+
+networks:
+  net:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
+
